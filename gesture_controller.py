@@ -3,6 +3,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import cv2
 import time
+import math
 
 #loading the pre-trained model and setting contstraints
 class GestureController():
@@ -19,6 +20,9 @@ class GestureController():
             )
 
             self.landmarker = vision.HandLandmarker.create_from_options(options)
+
+            self.prev_palm_x = None
+            self.prev_palm_y = None
 
     def frame_processing(self, frame):
         #coverts the BGR capture of cv2 into RGB for processing with MediaPipe
@@ -63,6 +67,20 @@ class GestureController():
              result = self.frame_processing(frame)
              frame = self.draw_hands(frame, result)
 
+             if result.hand_landmarks and len(result.hand_landmarks)>0:
+                 #testing
+                 hand_landmarks = result.hand_landmarks[0]
+                 zoom_distance = self.get_zoom_distance(hand_landmarks)
+                 pan_dx,pan_dy = self.get_change_palm(hand_landmarks)
+
+                 print (f"Zoom:{zoom_distance:.4f}" )
+                 print (f"Pan_dx:{pan_dx:.4f}  Pan_dy:{pan_dy:.4f}" )
+             else:
+                 #reset tracking history if palm is no longer detected
+                 self.prev_palm_x = None
+                 self.prev_palm_y = None
+                 print("No hand detected")
+
              cv2.imshow("Webcam Stream", frame)
 
              if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -70,9 +88,36 @@ class GestureController():
         cap.release()
         cv2.destroyAllWindows()
 
+    def get_zoom_distance(self, hand_landmarks):
+        thumb = hand_landmarks[4]
+        index = hand_landmarks[8]
+
+        #calculate distance between thumb and index finger
+        distance = math.hypot(index.x - thumb.x, index.y - thumb.y)
+        return distance
+
+    def get_change_palm(self, hand_landmarks):
+        palm_center = hand_landmarks[9]
+        curr_x, curr_y = palm_center.x, palm_center.y
+        pan_dx, pan_dy = 0,0 
+
+        #calculating movement of the palm to pan display
+        if self.prev_palm_x is not None and self.prev_palm_y is not None: 
+            pan_dx = curr_x - self.prev_palm_x
+            pan_dy = curr_y - self.prev_palm_y
+
+        #recentering the origin of the palm to the new coordinates
+        self.prev_palm_x = curr_x
+        self.prev_palm_y = curr_y
+
+        return pan_dx, pan_dy
+
+
+
 if __name__=="__main__":
      controller = GestureController("hand_landmarker.task")
      try:
         controller.camera()
+
      finally:
         controller.close()
