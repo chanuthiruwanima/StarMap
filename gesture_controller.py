@@ -4,10 +4,14 @@ from mediapipe.tasks.python import vision
 import cv2
 import time
 import math
+import pygame
+import random
 
-#loading the pre-trained model and setting contstraints
+
+
 class GestureController():
     def __init__(self, model_path="hand_landmarker.task"):
+            #loading the pre-trained model and setting contstraints
             base_options = python.BaseOptions(model_asset_path=model_path)
             
             options = vision.HandLandmarkerOptions(
@@ -51,43 +55,6 @@ class GestureController():
     def close(self):
         self.landmarker.close()
 
-    def camera(self):
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
-             print("Cannot open camera")
-             return
-
-        while True:
-             ret,frame = cap.read()
-             if not ret:
-                  print("Cannot grab frame")
-                  break
-           #rendering of landmarks
-             frame = cv2.flip(frame,1)
-             result = self.frame_processing(frame)
-             frame = self.draw_hands(frame, result)
-
-             if result.hand_landmarks and len(result.hand_landmarks)>0:
-                 #testing
-                 hand_landmarks = result.hand_landmarks[0]
-                 zoom_distance = self.get_zoom_distance(hand_landmarks)
-                 pan_dx,pan_dy = self.get_change_palm(hand_landmarks)
-
-                 print (f"Zoom:{zoom_distance:.4f}" )
-                 print (f"Pan_dx:{pan_dx:.4f}  Pan_dy:{pan_dy:.4f}" )
-             else:
-                 #reset tracking history if palm is no longer detected
-                 self.prev_palm_x = None
-                 self.prev_palm_y = None
-                 print("No hand detected")
-
-             cv2.imshow("Webcam Stream", frame)
-
-             if cv2.waitKey(1) & 0xFF == ord('q'):
-                  break         
-        cap.release()
-        cv2.destroyAllWindows()
-
     def get_zoom_distance(self, hand_landmarks):
         thumb = hand_landmarks[4]
         index = hand_landmarks[8]
@@ -112,12 +79,125 @@ class GestureController():
 
         return pan_dx, pan_dy
 
+class StarField():
+    def __init__(self):
+        pygame.init()
+        self.width = 500
+        self.height = 200
+        self.screen = pygame.display.set_mode((self.width,self.height))
+        pygame.display.set_caption("Starmap")
 
+        #camera tracker variables
+        self.cam_x = 0.0 
+        self.cam_y = 0.0 
+        self.zoom = 1.0
+
+        #creating random stars
+        self.stars = []
+        for star in range (200):
+            star_x = random.uniform(-1500,1500)
+            star_y = random.uniform(-1500, 1500)
+            brightness = random.randint(150,255)
+            self.stars.append((star_x,star_y,brightness))
+
+    def update_camera(self, pan_dx, pan_dy, zoom_distance):
+        #pan sensitivity
+        self.cam_x += pan_dx * 800.0
+        self.cam_y += pan_dy * 800.0
+
+        #clamping zoom level
+        zoom_sensitivity = 0.05
+        if zoom_distance!=1.0:
+            target_zoom = self.zoom + (zoom_distance - 0.15)*zoom_sensitivity
+            self.zoom = max(0.2, min(target_zoom, 5.0))
+
+    def render(self):
+        self.screen.fill((5,5,12))
+
+        for star_x, star_y, brightness in self.stars:
+            #transforming coordinates to map onto the screen
+            screen_x = int((star_x-self.cam_x)*self.zoom + (self.width/2.0))
+            screen_y = int((star_y-self.cam_y)*self.zoom + (self.height/2.0))
+
+            #check if star is inside screen viewport
+            if 0<= screen_x and screen_x < self.width and 0<= screen_y and screen_y < self.height:
+                #star radius dependent on zoom scale
+                radius = max (1, int(2*self.zoom))
+                color = (brightness, brightness, brightness)
+                #render star
+                pygame.draw.circle(self.screen, color, (screen_x, screen_y), radius)
+
+        #tracking circle at center
+        pygame.draw.circle(self.screen, (0,255,0), (int(self.width/2.0), int(self.height/2.0)), 4,1 )
+
+        pygame.display.flip()
+
+    def close(self):
+        pygame.quit()
+
+def StarMap():
+    controller = GestureController("hand_landmarker.task")
+    view = StarField()
+
+    cap = cv2.VideoCapture(0)
+    
+    if not cap.isOpened():
+        print("Cannot open camera")
+        return
+
+    clock = pygame.time.Clock()
+    running = True
+
+    try: 
+        while running: 
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+            if not running:
+                break
+
+            ret,frame = cap.read()
+            if not ret:
+                print("Cannot grab frame")
+                break
+             
+         #rendering of landmarks
+            frame = cv2.flip(frame,1)
+            result = controller.frame_processing(frame)
+            frame = controller.draw_hands(frame, result)
+
+            if result.hand_landmarks and len(result.hand_landmarks)>0:
+                 #testing
+                 hand_landmarks = result.hand_landmarks[0]
+                 zoom_distance = controller.get_zoom_distance(hand_landmarks)
+                 pan_dx,pan_dy = controller.get_change_palm(hand_landmarks)
+
+                 print (f"Zoom:{zoom_distance:.4f}" )
+                 print (f"Pan_dx:{pan_dx:.4f}  Pan_dy:{pan_dy:.4f}" )
+            else:
+                 #reset tracking history if palm is no longer detected
+                 controller.prev_palm_x = None
+                 controller.prev_palm_y = None
+                 pan_dx = 0.0
+                 pan_dy= 0.0
+                 zoom_distance = 1.0
+                 print("No hand detected")
+
+            cv2.imshow("Webcam Stream", frame)
+            view.update_camera(pan_dx,pan_dy, zoom_distance)
+            view.render()
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                  break     
+
+            clock.tick(60) 
+
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        controller.close()
+        view.close()
 
 if __name__=="__main__":
-     controller = GestureController("hand_landmarker.task")
-     try:
-        controller.camera()
-
-     finally:
-        controller.close()
+    StarMap()
