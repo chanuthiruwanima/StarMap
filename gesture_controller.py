@@ -27,6 +27,7 @@ class GestureController():
 
             self.prev_palm_x = None
             self.prev_palm_y = None
+            self.prev_zoom_distance = None
 
     def frame_processing(self, frame):
         #coverts the BGR capture of cv2 into RGB for processing with MediaPipe
@@ -61,7 +62,13 @@ class GestureController():
 
         #calculate distance between thumb and index finger
         distance = math.hypot(index.x - thumb.x, index.y - thumb.y)
-        return distance
+
+        zoom_scale = 0.0 
+
+        if self.prev_zoom_distance is not None:
+            zoom_scale = distance - self.prev_zoom_distance
+        self.prev_zoom_distance = distance
+        return zoom_scale
 
     def get_change_palm(self, hand_landmarks):
         palm_center = hand_landmarks[9]
@@ -100,16 +107,15 @@ class StarField():
             brightness = random.randint(150,255)
             self.stars.append((star_x,star_y,brightness))
 
-    def update_camera(self, pan_dx, pan_dy, zoom_distance):
+    def update_camera(self, pan_dx, pan_dy, zoom_scale):
         #pan sensitivity
         self.cam_x += pan_dx * 800.0
         self.cam_y += pan_dy * 800.0
 
         #clamping zoom level
-        zoom_sensitivity = 0.05
-        if zoom_distance!=1.0:
-            target_zoom = self.zoom + (zoom_distance - 0.15)*zoom_sensitivity
-            self.zoom = max(0.2, min(target_zoom, 5.0))
+        zoom_sensitivity = 3.0
+        self.zoom += zoom_scale * zoom_sensitivity
+        self.zoom = max(0.2, min(self.zoom,5.0))
 
     def render(self):
         self.screen.fill((5,5,12))
@@ -170,22 +176,23 @@ def StarMap():
             if result.hand_landmarks and len(result.hand_landmarks)>0:
                  #testing
                  hand_landmarks = result.hand_landmarks[0]
-                 zoom_distance = controller.get_zoom_distance(hand_landmarks)
+                 zoom_scale = controller.get_zoom_distance(hand_landmarks)
                  pan_dx,pan_dy = controller.get_change_palm(hand_landmarks)
 
-                 print (f"Zoom:{zoom_distance:.4f}" )
+                 print (f"Zoom:{zoom_scale:.4f}" )
                  print (f"Pan_dx:{pan_dx:.4f}  Pan_dy:{pan_dy:.4f}" )
             else:
                  #reset tracking history if palm is no longer detected
                  controller.prev_palm_x = None
                  controller.prev_palm_y = None
+                 controller.prev_zoom_distance = None
                  pan_dx = 0.0
                  pan_dy= 0.0
-                 zoom_distance = 1.0
+                 zoom_scale = 0.0
                  print("No hand detected")
 
             cv2.imshow("Webcam Stream", frame)
-            view.update_camera(pan_dx,pan_dy, zoom_distance)
+            view.update_camera(pan_dx,pan_dy, zoom_scale)
             view.render()
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
