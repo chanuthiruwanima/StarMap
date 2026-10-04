@@ -88,7 +88,7 @@ class StarField():
     def __init__(self):
         pygame.init()
         self.width = 500
-        self.height = 200
+        self.height = 500
         self.screen = pygame.display.set_mode((self.width,self.height))
         pygame.display.set_caption("Starmap")
 
@@ -98,6 +98,7 @@ class StarField():
         self.zoom = 1.0
 
         self.font = pygame.font.SysFont("Consolas", 14)
+        self.hud_title_font = pygame.font.SysFont("Consolas", 16, bold=True)
 
         #sample star database
         self.starsCatalogue = [
@@ -144,10 +145,37 @@ class StarField():
         self.zoom += zoom_scale * zoom_sensitivity
         self.zoom = max(0.2, min(self.zoom,5.0))
 
+    def hud_update(self, star, screen_x, screen_y):
+        box_size =18 
+        pygame.draw.rect(self.screen, (0,255,255),(screen_x-box_size //2, screen_y - box_size //2, box_size, box_size),1)
+        hud_x, hud_y = 15,15
+        hud_w, hud_h = 240, 110
+
+        hud_overlay = pygame.Surface((hud_w,hud_h),pygame.SRCALPHA)
+        hud_overlay.fill((10,15,30, 210))
+        self.screen.blit(hud_overlay, (hud_x,hud_y))
+
+        title_target = self.hud_title_font.render(f"TARGET: {star['name']}", True, (0, 255, 255))
+        mag_target = self.font.render(f"Magnitude: {star['magnitude']:.2f}", True, (220, 220, 220))
+        ra_target = self.font.render(f"Right Acension: {star['star_x']:.2f} h", True, (220, 220, 220))
+        dec_target = self.font.render(f"Declination: {star['star_y']:.2f}°", True, (220, 220, 220))
+
+        self.screen.blit(title_target, (hud_x + 10, hud_y + 10))
+        self.screen.blit(mag_target, (hud_x + 10, hud_y + 35))
+        self.screen.blit(ra_target, (hud_x + 10, hud_y + 55))
+        self.screen.blit(dec_target, (hud_x + 10, hud_y + 75))
+
     def render(self):
         self.screen.fill((5,5,12))
+        center_x = self.width / 2.0
+        center_y = self.height / 2.0
+
+        target_star = None
+        closest_distance = float("inf")
+        target_coord = (0,0)
 
         for star in self.stars:
+
             #transforming coordinates to map onto the screen
             screen_x = int((star["star_x"]-self.cam_x)*self.zoom + (self.width/2.0))
             screen_y = int((star["star_y"]-self.cam_y)*self.zoom + (self.height/2.0))
@@ -164,8 +192,19 @@ class StarField():
                     label = self.font.render(f"{star['name']}", True, (180,180, 180))
                     self.screen.blit(label, (screen_x + radius + 4, screen_y - 6))
 
-        #tracking circle at center
-        pygame.draw.circle(self.screen, (0,255,0), (int(self.width/2.0), int(self.height/2.0)), 4,1 )
+                #check distance to center
+                distance = math.hypot(screen_x-center_x, screen_y-center_y)
+                if distance<30.0 and distance<closest_distance:
+                    closest_distance = distance
+                    target_star = star
+                    target_coord = (screen_x, screen_y)
+        if target_star:
+            #show hud and tracking circle
+            self.hud_update(target_star, target_coord[0],target_coord[1])
+            pygame.draw.circle(self.screen, (0, 255, 255), (int(center_x), int(center_y)), 6, 1)
+        else:
+            #default crosshair
+            pygame.draw.circle(self.screen, (0, 255, 0), (int(center_x), int(center_y)), 4, 1)
 
         pygame.display.flip()
 
