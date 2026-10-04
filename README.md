@@ -4,6 +4,8 @@
 An interactive, gesture-controlled 2D star map planetarium built with **Python**, **OpenCV**, **MediaPipe**, and **Pygame**.
 Navigate celestial star catalogs using real-time webcam hand tracking—pan across the night sky, zoom into stellar clusters, and lock onto bright stars to display an astronomical HUD overlay.
 
+Click 'q' on your keyboard/ the close button of the pygame window to quit the program 
+
 ## Features
 - **Gesture Camera Control**: Real-time panning and zooming powered by MediaPipe hand landmarker detection.
 - **Astronomical Catalog Projection**: Maps Right Ascension (RA) and Declination (Dec) celestial coordinates into a 2D viewport.
