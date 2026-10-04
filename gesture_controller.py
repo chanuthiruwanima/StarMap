@@ -7,8 +7,6 @@ import math
 import pygame
 import random
 
-
-
 class GestureController():
     def __init__(self, model_path="hand_landmarker.task"):
             #loading the pre-trained model and setting contstraints
@@ -99,13 +97,42 @@ class StarField():
         self.cam_y = 0.0 
         self.zoom = 1.0
 
-        #creating random stars
+        self.font = pygame.font.SysFont("Consolas", 14)
+
+        #sample star database
+        self.starsCatalogue = [
+    {"name": "Sirius", "ra": 6.75, "dec": -16.72, "mag": -1.46, "color": (200, 220, 255)},
+    {"name": "Canopus", "ra": 6.40, "dec": -52.70, "mag": -0.74, "color": (255, 255, 240)},
+    {"name": "Rigel Kentaurus (Alpha Centauri)", "ra": 14.66, "dec": -60.83, "mag": -0.27, "color": (255, 240, 200)},
+    {"name": "Arcturus", "ra": 14.26, "dec": 19.18, "mag": -0.05, "color": (255, 200, 150)},
+    {"name": "Vega", "ra": 18.62, "dec": 38.78, "mag": 0.03, "color": (220, 230, 255)},
+    {"name": "Capella", "ra": 5.28, "dec": 45.99, "mag": 0.08, "color": (255, 255, 200)},
+    {"name": "Rigel", "ra": 5.25, "dec": -8.20, "mag": 0.13, "color": (180, 210, 255)},
+    {"name": "Procyon", "ra": 7.65, "dec": 5.22, "mag": 0.38, "color": (255, 255, 220)},
+    {"name": "Betelgeuse", "ra": 5.92, "dec": 7.41, "mag": 0.50, "color": (255, 160, 120)},
+    {"name": "Achernar", "ra": 1.63, "dec": -57.24, "mag": 0.46, "color": (200, 220, 255)},
+    {"name": "Hadar", "ra": 14.06, "dec": -60.37, "mag": 0.61, "color": (200, 220, 255)},
+    {"name": "Altair", "ra": 19.84, "dec": 8.87, "mag": 0.77, "color": (240, 240, 255)},
+    {"name": "Acrux", "ra": 12.44, "dec": -63.10, "mag": 0.77, "color": (180, 210, 255)},
+    {"name": "Aldebaran", "ra": 4.60, "dec": 16.51, "mag": 0.85, "color": (255, 180, 130)},
+    {"name": "Antares", "ra": 16.49, "dec": -26.43, "mag": 0.96, "color": (255, 140, 100)},
+    {"name": "Spica", "ra": 13.42, "dec": -11.16, "mag": 0.98, "color": (190, 215, 255)},
+    {"name": "Pollux", "ra": 7.76, "dec": 28.03, "mag": 1.14, "color": (255, 210, 160)},
+    {"name": "Fomalhaut", "ra": 22.96, "dec": -29.62, "mag": 1.17, "color": (230, 240, 255)},
+    {"name": "Deneb", "ra": 20.69, "dec": 45.28, "mag": 1.25, "color": (220, 230, 255)},
+    {"name": "Mimosa", "ra": 12.79, "dec": -59.69, "mag": 1.25, "color": (180, 210, 255)},
+    {"name": "Polaris", "ra": 2.53, "dec": 89.26, "mag": 1.98, "color": (255, 255, 230)},
+]
+
         self.stars = []
-        for star in range (200):
-            star_x = random.uniform(-1500,1500)
-            star_y = random.uniform(-1500, 1500)
-            brightness = random.randint(150,255)
-            self.stars.append((star_x,star_y,brightness))
+        scale = 10.0 
+        
+        for star in self.starsCatalogue:
+            star_x = ((star["ra"] * 15.0) - 180.0) * scale
+            star_y = (star["dec"]*-1) * scale
+            radius = max(2,int(6.0-star["mag"]))
+            self.stars.append({"name": star["name"], "star_x" : star_x, "star_y" : star_y,
+                               "brightness":star["color"], "radius" : radius, "magnitude" : star["mag"] })
 
     def update_camera(self, pan_dx, pan_dy, zoom_scale):
         #pan sensitivity
@@ -120,18 +147,22 @@ class StarField():
     def render(self):
         self.screen.fill((5,5,12))
 
-        for star_x, star_y, brightness in self.stars:
+        for star in self.stars:
             #transforming coordinates to map onto the screen
-            screen_x = int((star_x-self.cam_x)*self.zoom + (self.width/2.0))
-            screen_y = int((star_y-self.cam_y)*self.zoom + (self.height/2.0))
+            screen_x = int((star["star_x"]-self.cam_x)*self.zoom + (self.width/2.0))
+            screen_y = int((star["star_y"]-self.cam_y)*self.zoom + (self.height/2.0))
 
             #check if star is inside screen viewport
             if 0<= screen_x and screen_x < self.width and 0<= screen_y and screen_y < self.height:
                 #star radius dependent on zoom scale
-                radius = max (1, int(2*self.zoom))
-                color = (brightness, brightness, brightness)
+                radius = max (1, int(star["radius"]*self.zoom))
+                color = star["brightness"]
                 #render star
                 pygame.draw.circle(self.screen, color, (screen_x, screen_y), radius)
+
+                if self.zoom >0.8:
+                    label = self.font.render(f"{star['name']}", True, (180,180, 180))
+                    self.screen.blit(label, (screen_x + radius + 4, screen_y - 6))
 
         #tracking circle at center
         pygame.draw.circle(self.screen, (0,255,0), (int(self.width/2.0), int(self.height/2.0)), 4,1 )
