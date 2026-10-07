@@ -1,19 +1,18 @@
 ### StarMap 
 ## Gesture-Controlled Planetarium
 
-An interactive, gesture-controlled 2D star map planetarium built with **Python**, **OpenCV**, **MediaPipe**, and **Pygame**.
-Navigate celestial star catalogs using real-time webcam hand tracking—pan across the night sky, zoom into stellar clusters, and lock onto bright stars to display an astronomical HUD overlay.
-
+A gesture-controlled star map planetarium built with **Python**, **OpenCV**, **MediaPipe**, and **Pygame**.
 Click 'q' on your keyboard/ the close button of the pygame window to quit the program 
 
-## Features
-- **Gesture Camera Control**: Real-time panning and zooming powered by MediaPipe hand landmarker detection.
-- **Astronomical Catalog Projection**: Maps Right Ascension (RA) and Declination (Dec) celestial coordinates into a 2D viewport.
-- **Visual Star Magnitudes**: Renders star radius and spectral color temperatures based on catalog visual magnitudes.
-- **Constellation Vector Overlays**: Connects named star pairs to illustrate major constellations (e.g., Orion, Summer Triangle, Southern Cross).
-- **Targeting Reticle & Info HUD**: Locks onto stars near the screen center, rendering a high-tech HUD overlay with magnitude, RA, and Dec data.
+Pan and zoom to navigate through the sky.
+Lock onto stars and discover information regarding their magnitude, celestial coordinates in RA and DEC, and colour.
 
-## Prerequisites & Installation
+## Gesture Controls
+- Move Palm: Pan camera across the sky
+- Thumb & Index Pinch/Expand: Zoom in / Zoom out
+- Center Crosshair Alignment: Lock target onto a star to open HUD info card
+
+## To install
 
 1. **Clone the repository:**
    ```bash
@@ -25,19 +24,10 @@ Click 'q' on your keyboard/ the close button of the pygame window to quit the pr
    pip install opencv-python mediapipe pygame
 
 3. **Download the MediaPipe Model:**
-   Download the pre-trained hand_landmarker.task model file from MediaPipe and place it in the project root directory:
+   Download the pre-trained hand_landmarker.task model file from MediaPipe
    [hand_landmarker.task](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task)
 
 4. **Run the main application script:**
      ```bash
      python starmap.py
      
-## Gesture Controls
-- Move Palm: Pan camera across Right Ascension and Declination
-- Thumb & Index Pinch/Expand: Zoom in / Zoom out
-- Center Crosshair Alignment: Lock target onto a star to open HUD info card
-
-## Project Architecture 
-├── main.py                   # Main loop & integration logic
-├── hand_landmarker.task      # MediaPipe model file
-└── README.md                 # Project documentation
