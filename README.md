@@ -14,5 +14,5 @@ Discover information regarding the stars through the HUD display.
 
 ## How to run:
 - Download [starmap.exe](https://github.com/chanuthiruwanima/StarMap/releases/download/v.1.0.0/starmap.exe)
-- Download the [hand_landmarker.task](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task) model file from MediaPipe and place it in the project root directory:
+- Download the [hand_landmarker.task](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task) model file from MediaPipe and place it in the project root directory
 - Run starmap.exe
